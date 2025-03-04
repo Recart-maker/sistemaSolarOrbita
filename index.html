@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sistema Solar Mejorado</title>
+    <style>
+        .controls {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="toggleOrbits()">Toggle Órbitas</button>
+        <button onclick="toggleLabels()">Toggle Nombres</button>
+    </div>
+    <canvas id="sistemaSolar"></canvas>
+
+    <script>
+        const canvas = document.getElementById('sistemaSolar');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = 1200;
+        canvas.height = 800;
+
+        let showOrbits = true;
+        let showLabels = true;
+
+        const solarSystem = {
+            sun: {
+                radius: 40,
+                color: '#FFD700',
+                glow: 50
+            },
+            planets: [
+                {name: 'Mercurio', distance: 70, radius: 10, color: '#A0522D', speed: 0.02, angle: 0},
+                {name: 'Venus', distance: 110, radius: 15, color: '#DEB887', speed: 0.015, angle: 0},
+                {name: 'Tierra', distance: 160, radius: 16, color: '#4169E1', speed: 0.01, angle: 0, moons: 1},
+                {name: 'Marte', distance: 200, radius: 12, color: '#CD5C5C', speed: 0.008, angle: 0},
+                {name: 'Júpiter', distance: 280, radius: 30, color: '#DAA520', speed: 0.005, angle: 0, moons: 4},
+                {name: 'Saturno', distance: 350, radius: 25, color: '#F4A460', speed: 0.004, angle: 0, rings: true},
+                {name: 'Urano', distance: 410, radius: 20, color: '#87CEEB', speed: 0.003, angle: 0},
+                {name: 'Neptuno', distance: 470, radius: 18, color: '#4682B4', speed: 0.002, angle: 0}
+            ],
+            stars: Array(300).fill().map(() => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 1.5,
+                alpha: Math.random() * 0.5 + 0.5
+            }))
+        };
+
+        function drawBackground() {
+            // Fondo degradado
+            const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            gradient.addColorStop(0, '#000000');
+            gradient.addColorStop(1, '#000033');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Estrellas titilantes
+            solarSystem.stars.forEach(star => {
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                ctx.fill();
+                star.alpha += (Math.random() - 0.5) * 0.1;
+                star.alpha = Math.max(0.3, Math.min(1, star.alpha));
+            });
+        }
+
+        function drawSun() {
+            // Brillo del sol
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, solarSystem.sun.radius,
+                canvas.width/2, canvas.height/2, solarSystem.sun.radius + solarSystem.sun.glow
+            );
+            gradient.addColorStop(0, solarSystem.sun.color);
+            gradient.addColorStop(1, 'rgba(255, 215, 0, 0)');
+            
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, 
+                   solarSystem.sun.radius + solarSystem.sun.glow, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Núcleo del sol
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/2, solarSystem.sun.radius, 0, Math.PI * 2);
+            ctx.fillStyle = solarSystem.sun.color;
+            ctx.fill();
+        }
+
+        function drawPlanets() {
+            const centerX = canvas.width/2;
+            const centerY = canvas.height/2;
+
+            solarSystem.planets.forEach(planet => {
+                // Actualizar posición
+                planet.angle += planet.speed;
+                const x = centerX + Math.cos(planet.angle) * planet.distance;
+                const y = centerY + Math.sin(planet.angle) * planet.distance;
+
+                // Dibujar órbita
+                if(showOrbits) {
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, planet.distance, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                    ctx.stroke();
+                }
+
+                // Anillos de Saturno
+                if(planet.rings) {
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(planet.angle);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, 35, 15, 0, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(210, 180, 140, 0.5)';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Planeta
+                ctx.beginPath();
+                ctx.arc(x, y, planet.radius, 0, Math.PI * 2);
+                ctx.fillStyle = planet.color;
+                ctx.fill();
+
+                // Lunas
+                if(planet.moons) {
+                    ctx.beginPath();
+                    ctx.arc(x + planet.radius * 2, y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fill();
+                }
+
+                // Etiquetas
+                if(showLabels) {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(planet.name, x, y + planet.radius + 15);
+                }
+            });
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBackground();
+            drawSun();
+            drawPlanets();
+            requestAnimationFrame(animate);
+        }
+
+        function toggleOrbits() {
+            showOrbits = !showOrbits;
+        }
+
+        function toggleLabels() {
+            showLabels = !showLabels;
+        }
+
+        // Iniciar
+        animate();
+    </script>
+</body>
+</html>
